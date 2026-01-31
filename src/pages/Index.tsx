@@ -1,13 +1,40 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Layout } from '@/components/Layout';
+import { Hero } from '@/components/Hero';
+import { FeaturedCarousel } from '@/components/FeaturedCarousel';
+import { AlbumGrid } from '@/components/AlbumGrid';
+import { useAlbums } from '@/hooks/useAlbums';
+import { AlbumGridSkeleton } from '@/components/AlbumSkeleton';
 
 const Index = () => {
+  const { getPublicAlbums, getFeaturedAlbums, loading } = useAlbums();
+  
+  const publicAlbums = getPublicAlbums();
+  const featuredAlbums = getFeaturedAlbums();
+  const recentAlbums = publicAlbums.slice(0, 6);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <Layout>
+      <Hero />
+      
+      {loading ? (
+        <section className="py-16 md:py-24 bg-secondary/30">
+          <div className="container mx-auto px-4 md:px-6">
+            <AlbumGridSkeleton count={3} />
+          </div>
+        </section>
+      ) : (
+        <>
+          <FeaturedCarousel albums={featuredAlbums} />
+          
+          <AlbumGrid
+            albums={recentAlbums}
+            title="Recent Work"
+            subtitle="Portfolio"
+            showViewAll={publicAlbums.length > 6}
+          />
+        </>
+      )}
+    </Layout>
   );
 };
 

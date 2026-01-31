@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, Send, Instagram, Youtube } from 'lucide-react';
+import { Mail, Phone, MapPin, Send, Instagram } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useSettings } from '@/hooks/useSettings';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const ContactPage = () => {
   const { settings } = useSettings();
@@ -23,24 +24,26 @@ const ContactPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission (in production, this would save to DB or send email)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Store in localStorage as a simple "database"
-    const submissions = JSON.parse(localStorage.getItem('albumhub_contacts') || '[]');
-    submissions.push({
-      ...formData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem('albumhub_contacts', JSON.stringify(submissions));
-
-    toast({
-      title: 'Message sent!',
-      description: "Thanks for reaching out. I'll get back to you soon.",
+    const { error } = await supabase.from('contact_submissions').insert({
+      name: formData.name,
+      email: formData.email,
+      message: formData.message,
     });
 
-    setFormData({ name: '', email: '', message: '' });
+    if (error) {
+      toast({
+        title: 'Something went wrong',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Message sent!',
+        description: "Thanks for reaching out. I'll get back to you soon.",
+      });
+      setFormData({ name: '', email: '', message: '' });
+    }
+
     setIsSubmitting(false);
   };
 
@@ -78,48 +81,53 @@ const ContactPage = () => {
               </h2>
 
               <div className="space-y-6 mb-12">
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-full bg-secondary">
-                    <Mail className="h-5 w-5" />
+                {settings.email && (
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-full bg-secondary">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium mb-1">Email</p>
+                      <a
+                        href={`mailto:${settings.email}`}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {settings.email}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium mb-1">Email</p>
-                    <a
-                      href="mailto:hello@elenavasquez.com"
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      hello@elenavasquez.com
-                    </a>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-full bg-secondary">
-                    <Phone className="h-5 w-5" />
+                {settings.phone && (
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-full bg-secondary">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium mb-1">Phone</p>
+                      <a
+                        href={`tel:${settings.phone.replace(/\D/g, '')}`}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {settings.phone}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium mb-1">Phone</p>
-                    <a
-                      href="tel:+1234567890"
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      +1 (234) 567-890
-                    </a>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-full bg-secondary">
-                    <MapPin className="h-5 w-5" />
+                {settings.location && (
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-full bg-secondary">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-medium mb-1">Location</p>
+                      <p className="text-muted-foreground">
+                        {settings.location}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium mb-1">Location</p>
-                    <p className="text-muted-foreground">
-                      Los Angeles, California<br />
-                      Available for travel worldwide
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Social Links */}
@@ -133,16 +141,6 @@ const ContactPage = () => {
                     className="p-3 rounded-full bg-secondary hover:bg-accent transition-colors"
                   >
                     <Instagram className="h-5 w-5" />
-                  </a>
-                )}
-                {settings.socialLinks.youtube && (
-                  <a
-                    href={settings.socialLinks.youtube}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-3 rounded-full bg-secondary hover:bg-accent transition-colors"
-                  >
-                    <Youtube className="h-5 w-5" />
                   </a>
                 )}
               </div>

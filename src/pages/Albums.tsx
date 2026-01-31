@@ -93,7 +93,7 @@ const AlbumsPage = () => {
               All Albums
             </h1>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Explore our complete collection of photo albums from weddings, portraits, events, and more.
+              Explore our complete collection of photo albums.
             </p>
           </motion.div>
 

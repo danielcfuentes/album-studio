@@ -37,7 +37,7 @@ const AdminAlbumsPage = () => {
   const filteredAlbums = albums.filter(
     (album) =>
       album.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      album.location.toLowerCase().includes(searchQuery.toLowerCase())
+      (album.location ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleCreate = () => {
@@ -50,33 +50,48 @@ const AdminAlbumsPage = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = () => {
-    if (deletingAlbum) {
-      deleteAlbum(deletingAlbum.id);
+  const handleDelete = async () => {
+    if (!deletingAlbum) return;
+    try {
+      await deleteAlbum(deletingAlbum.id);
       toast({
         title: 'Album deleted',
         description: `"${deletingAlbum.title}" has been removed.`,
       });
       setDeletingAlbum(null);
+    } catch (err) {
+      toast({
+        title: 'Failed to delete',
+        description: err instanceof Error ? err.message : 'Could not delete album.',
+        variant: 'destructive',
+      });
     }
   };
 
-  const handleFormSubmit = (data: Omit<Album, 'id' | 'createdAt' | 'viewCount' | 'clickCount'>) => {
-    if (editingAlbum) {
-      updateAlbum(editingAlbum.id, data);
+  const handleFormSubmit = async (data: Omit<Album, 'id' | 'createdAt' | 'viewCount' | 'clickCount'>) => {
+    try {
+      if (editingAlbum) {
+        await updateAlbum(editingAlbum.id, data);
+        toast({
+          title: 'Album updated',
+          description: `"${data.title}" has been updated.`,
+        });
+      } else {
+        await createAlbum(data);
+        toast({
+          title: 'Album created',
+          description: `"${data.title}" has been added.`,
+        });
+      }
+      setIsFormOpen(false);
+      setEditingAlbum(null);
+    } catch (err) {
       toast({
-        title: 'Album updated',
-        description: `"${data.title}" has been updated.`,
-      });
-    } else {
-      createAlbum(data);
-      toast({
-        title: 'Album created',
-        description: `"${data.title}" has been added.`,
+        title: 'Failed to save',
+        description: err instanceof Error ? err.message : 'Could not save album.',
+        variant: 'destructive',
       });
     }
-    setIsFormOpen(false);
-    setEditingAlbum(null);
   };
 
   return (

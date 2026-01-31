@@ -1,41 +1,43 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
-
-const AUTH_STORAGE_KEY = 'albumhub_auth';
-const ADMIN_PASSWORD = 'admin123'; // In production, this would be handled by a real auth system
+import { supabase } from '@/lib/supabase';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (password: string) => boolean;
-  logout: () => void;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useAuthProvider() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (stored === 'true') {
-      setIsAuthenticated(true);
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+      setIsLoading(false);
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+      setIsLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = useCallback((password: string) => {
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem(AUTH_STORAGE_KEY, 'true');
-      return true;
-    }
-    return false;
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return !error;
   }, []);
 
-  const logout = useCallback(() => {
-    setIsAuthenticated(false);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
   }, []);
 
-  return { isAuthenticated, login, logout };
+  return { isAuthenticated, isLoading, login, logout };
 }
 
 export function useAuth() {

@@ -3,7 +3,8 @@ import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Album } from '@/types/album';
 import { AlbumCard } from './AlbumCard';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface AlbumGridProps {
   albums: Album[];
@@ -66,12 +67,16 @@ export function AlbumGrid({
                 transition={{ delay: 0.4, duration: 0.6 }}
                 className="text-center mt-12"
               >
-                <Button asChild variant="outline" size="lg" className="group">
-                  <Link to="/albums">
-                    View All Albums
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </Button>
+                <Link
+                  to="/albums"
+                  className={cn(
+                    buttonVariants({ variant: 'outline', size: 'lg' }),
+                    'group inline-flex'
+                  )}
+                >
+                  View All Albums
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
               </motion.div>
             )}
           </>

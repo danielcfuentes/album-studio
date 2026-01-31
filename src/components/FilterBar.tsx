@@ -75,16 +75,16 @@ export function FilterBar({
           </SelectContent>
         </Select>
 
-        {/* Year Filter */}
+        {/* Year Filter - use sentinel value; Radix Select disallows value="" */}
         <Select 
-          value={activeYear || ''} 
-          onValueChange={(v) => onYearFilter(v || null)}
+          value={activeYear || '__all__'} 
+          onValueChange={(v) => onYearFilter(v === '__all__' ? null : v)}
         >
           <SelectTrigger className="w-full sm:w-[140px]">
             <SelectValue placeholder="Year" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Years</SelectItem>
+            <SelectItem value="__all__">All Years</SelectItem>
             {availableYears.map((year) => (
               <SelectItem key={year} value={year}>
                 {year}

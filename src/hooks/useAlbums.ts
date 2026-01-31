@@ -1,81 +1,102 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Album } from '@/types/album';
-import { seedAlbums } from '@/data/seedData';
-
-const ALBUMS_STORAGE_KEY = 'albumhub_albums';
+import { supabase } from '@/lib/supabase';
+import { mapAlbumRowToAlbum, mapAlbumToRow } from '@/lib/supabase-mappers';
 
 export function useAlbums() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(ALBUMS_STORAGE_KEY);
-    if (stored) {
-      setAlbums(JSON.parse(stored));
-    } else {
-      setAlbums(seedAlbums);
-      localStorage.setItem(ALBUMS_STORAGE_KEY, JSON.stringify(seedAlbums));
+  const fetchAlbums = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const { data, error: err } = await supabase
+      .from('albums')
+      .select('*')
+      .order('event_date', { ascending: false });
+    if (err) {
+      setError(err.message);
+      setAlbums([]);
+      setLoading(false);
+      return;
     }
+    setAlbums((data ?? []).map(mapAlbumRowToAlbum));
     setLoading(false);
   }, []);
 
-  const saveAlbums = useCallback((newAlbums: Album[]) => {
-    setAlbums(newAlbums);
-    localStorage.setItem(ALBUMS_STORAGE_KEY, JSON.stringify(newAlbums));
+  useEffect(() => {
+    fetchAlbums();
+  }, [fetchAlbums]);
+
+  const createAlbum = useCallback(
+    async (album: Omit<Album, 'id' | 'createdAt' | 'viewCount' | 'clickCount'>) => {
+      const row = mapAlbumToRow({
+        ...album,
+        viewCount: 0,
+        clickCount: 0,
+      });
+      const { data, error: err } = await supabase.from('albums').insert(row as never).select('*').single();
+      if (err) throw err;
+      const newAlbum = data ? mapAlbumRowToAlbum(data) : null;
+      if (newAlbum) await fetchAlbums();
+      return newAlbum;
+    },
+    [fetchAlbums]
+  );
+
+  const updateAlbum = useCallback(
+    async (id: string, updates: Partial<Album>) => {
+      const row = mapAlbumToRow(updates);
+      const { error: err } = await supabase.from('albums').update(row as never).eq('id', id);
+      if (err) throw err;
+      await fetchAlbums();
+    },
+    [fetchAlbums]
+  );
+
+  const deleteAlbum = useCallback(
+    async (id: string) => {
+      const { error: err } = await supabase.from('albums').delete().eq('id', id);
+      if (err) throw err;
+      await fetchAlbums();
+    },
+    [fetchAlbums]
+  );
+
+  const getAlbumBySlug = useCallback(
+    (slug: string) => albums.find((a) => a.slug === slug) ?? null,
+    [albums]
+  );
+
+  const incrementViewCount = useCallback(async (id: string) => {
+    await supabase.rpc('increment_album_view_count', { album_id: id } as never);
+    setAlbums((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, viewCount: a.viewCount + 1 } : a))
+    );
   }, []);
 
-  const createAlbum = useCallback((album: Omit<Album, 'id' | 'createdAt' | 'viewCount' | 'clickCount'>) => {
-    const newAlbum: Album = {
-      ...album,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString().split('T')[0],
-      viewCount: 0,
-      clickCount: 0,
-    };
-    saveAlbums([newAlbum, ...albums]);
-    return newAlbum;
-  }, [albums, saveAlbums]);
-
-  const updateAlbum = useCallback((id: string, updates: Partial<Album>) => {
-    const updated = albums.map(album => 
-      album.id === id ? { ...album, ...updates } : album
+  const incrementClickCount = useCallback(async (id: string) => {
+    await supabase.rpc('increment_album_click_count', { album_id: id } as never);
+    setAlbums((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, clickCount: a.clickCount + 1 } : a))
     );
-    saveAlbums(updated);
-  }, [albums, saveAlbums]);
+  }, []);
 
-  const deleteAlbum = useCallback((id: string) => {
-    saveAlbums(albums.filter(album => album.id !== id));
-  }, [albums, saveAlbums]);
+  const getPublicAlbums = useMemo(
+    () => () => albums.filter((a) => a.visibility === 'public'),
+    [albums]
+  );
 
-  const getAlbumBySlug = useCallback((slug: string) => {
-    return albums.find(album => album.slug === slug);
-  }, [albums]);
-
-  const incrementViewCount = useCallback((id: string) => {
-    const updated = albums.map(album => 
-      album.id === id ? { ...album, viewCount: album.viewCount + 1 } : album
-    );
-    saveAlbums(updated);
-  }, [albums, saveAlbums]);
-
-  const incrementClickCount = useCallback((id: string) => {
-    const updated = albums.map(album => 
-      album.id === id ? { ...album, clickCount: album.clickCount + 1 } : album
-    );
-    saveAlbums(updated);
-  }, [albums, saveAlbums]);
-
-  const getPublicAlbums = useCallback(() => {
-    return albums.filter(album => album.visibility === 'public');
-  }, [albums]);
-
-  const getFeaturedAlbums = useCallback(() => {
-    return albums.filter(album => album.featured && album.visibility === 'public');
-  }, [albums]);
+  const getFeaturedAlbums = useMemo(
+    () => () => albums.filter((a) => a.featured && a.visibility === 'public'),
+    [albums]
+  );
 
   return {
     albums,
     loading,
+    error,
     createAlbum,
     updateAlbum,
     deleteAlbum,
@@ -84,5 +105,6 @@ export function useAlbums() {
     incrementClickCount,
     getPublicAlbums,
     getFeaturedAlbums,
+    refetch: fetchAlbums,
   };
 }

@@ -19,6 +19,11 @@ export interface SiteSettings {
   photographerName: string;
   tagline: string;
   logoUrl?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  aboutMe?: string;
+  aboutImageUrl?: string;
   socialLinks: {
     instagram?: string;
     tiktok?: string;

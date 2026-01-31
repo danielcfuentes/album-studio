@@ -32,8 +32,8 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/albums" element={<Albums />} />
             <Route path="/albums/:slug" element={<AlbumDetail />} />
+            <Route path="/albums" element={<Albums />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
 

@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Save } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUrlOrUpload } from '@/components/ImageUrlOrUpload';
 import { useSettings } from '@/hooks/useSettings';
 import { useToast } from '@/hooks/use-toast';
 
@@ -14,13 +16,25 @@ const AdminSettingsPage = () => {
   const { toast } = useToast();
   const [formData, setFormData] = useState(settings);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    setFormData(settings);
+  }, [settings]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettings(formData);
-    toast({
-      title: 'Settings saved',
-      description: 'Your site settings have been updated.',
-    });
+    try {
+      await updateSettings(formData);
+      toast({
+        title: 'Settings saved',
+        description: 'Your site settings have been updated.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Failed to save',
+        description: err instanceof Error ? err.message : 'Could not save settings.',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -72,15 +86,112 @@ const AdminSettingsPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="logoUrl">Logo URL (optional)</Label>
-                  <Input
+                  <ImageUrlOrUpload
                     id="logoUrl"
+                    label="Logo (optional)"
                     value={formData.logoUrl || ''}
+                    onChange={(url) => setFormData({ ...formData, logoUrl: url })}
+                    placeholder="Paste logo URL or upload"
+                    uploadFolder="settings"
+                    previewClassName="mt-2 h-16 w-auto max-w-[200px] object-contain rounded"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Contact & Location */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact & Location</CardTitle>
+                <CardDescription>
+                  Email, phone, and location shown on the Contact page.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email || ''}
                     onChange={(e) =>
-                      setFormData({ ...formData, logoUrl: e.target.value })
+                      setFormData({ ...formData, email: e.target.value })
                     }
-                    placeholder="https://example.com/logo.png"
+                    placeholder="hello@example.com"
                     className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    placeholder="+1 (234) 567-890"
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, location: e.target.value })
+                    }
+                    placeholder="New York"
+                    className="mt-2"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* About Me */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>About Me</CardTitle>
+                <CardDescription>
+                  Bio and photo for the About page. Use paragraphs separated by a blank line.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <ImageUrlOrUpload
+                    id="aboutImageUrl"
+                    label="About photo"
+                    value={formData.aboutImageUrl || ''}
+                    onChange={(url) => setFormData({ ...formData, aboutImageUrl: url })}
+                    placeholder="Paste image URL or upload"
+                    uploadFolder="settings"
+                    previewClassName="mt-2 aspect-[4/5] max-h-48 w-auto object-cover rounded-lg"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="aboutMe">About me text</Label>
+                  <Textarea
+                    id="aboutMe"
+                    value={formData.aboutMe || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, aboutMe: e.target.value })
+                    }
+                    placeholder="Tell your story..."
+                    rows={8}
+                    className="mt-2 resize-y"
                   />
                 </div>
               </CardContent>
@@ -128,21 +239,6 @@ const AdminSettingsPage = () => {
                       })
                     }
                     placeholder="https://tiktok.com/@yourhandle"
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="youtube">YouTube</Label>
-                  <Input
-                    id="youtube"
-                    value={formData.socialLinks.youtube || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        socialLinks: { ...formData.socialLinks, youtube: e.target.value },
-                      })
-                    }
-                    placeholder="https://youtube.com/@yourhandle"
                     className="mt-2"
                   />
                 </div>

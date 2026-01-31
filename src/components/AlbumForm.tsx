@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ImageUrlOrUpload } from '@/components/ImageUrlOrUpload';
 
 interface AlbumFormProps {
   album?: Album | null;
@@ -107,22 +108,16 @@ export function AlbumForm({ album, onSubmit, onCancel }: AlbumFormProps) {
         </div>
 
         <div className="md:col-span-2">
-          <Label htmlFor="coverImageUrl">Cover Image URL *</Label>
-          <Input
+          <ImageUrlOrUpload
             id="coverImageUrl"
+            label="Cover image"
             value={formData.coverImageUrl}
-            onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
-            placeholder="https://example.com/image.jpg"
+            onChange={(url) => setFormData({ ...formData, coverImageUrl: url })}
+            placeholder="Paste image URL or upload"
             required
-            className="mt-2"
+            uploadFolder="albums"
+            previewClassName="mt-2 w-full h-32 object-cover rounded-lg"
           />
-          {formData.coverImageUrl && (
-            <img
-              src={formData.coverImageUrl}
-              alt="Cover preview"
-              className="mt-2 w-full h-32 object-cover rounded-lg"
-            />
-          )}
         </div>
 
         <div className="md:col-span-2">
